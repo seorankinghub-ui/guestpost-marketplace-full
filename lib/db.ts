@@ -9,8 +9,6 @@ const DB_PATH = isProd
   : path.join(process.cwd(), 'data', 'marketplace.db');
 
 let db: Database.Database | null = null;
-let seeded = false;
-
 export function getDb(): Database.Database {
   if (db) return db;
 
@@ -23,10 +21,7 @@ export function getDb(): Database.Database {
   db.pragma('foreign_keys = ON');
   initSchema(db);
   
-  if (!seeded) {
-    seedIfEmpty(db);
-    seeded = true;
-  }
+  seedIfEmpty(db);
 
   return db;
 }
@@ -163,22 +158,36 @@ function initSchema(db: Database.Database) {
 }
 
 function seedIfEmpty(db: Database.Database) {
-  const count = (db.prepare('SELECT COUNT(*) as c FROM users').get() as any).c;
-  if (count > 0) return;
-
   const bcrypt = require('bcryptjs');
   const hash = bcrypt.hashSync('password123', 10);
 
   const insertUser = db.prepare(
     'INSERT INTO users (email, password_hash, name, role, balance_main, avatar_initials) VALUES (?, ?, ?, ?, ?, ?)'
   );
+  const userExists = db.prepare('SELECT id FROM users WHERE email = ?');
 
-  insertUser.run('admin@guestpost.com', hash, 'Admin User', 'admin', 0, 'AD');
-  insertUser.run('buyer@example.com', hash, 'Sarah Johnson', 'buyer', 500, 'SJ');
-  insertUser.run('agency@example.com', hash, 'Digital Growth Agency', 'buyer', 2500, 'DG');
-  insertUser.run('brand@example.com', hash, 'TechBrand Inc', 'buyer', 1000, 'TB');
-  insertUser.run('publisher@example.com', hash, 'Mike Owner', 'publisher', 0, 'MO');
-  insertUser.run('publisher2@example.com', hash, 'Lisa Blogs', 'publisher', 0, 'LB');
+  // Insert demo users only if they don't already exist
+  const demoUsers = [
+    ['admin@guestpost.com', 'Admin User', 'admin', 0, 'AD'],
+    ['buyer@example.com', 'Sarah Johnson', 'buyer', 500, 'SJ'],
+    ['agency@example.com', 'Digital Growth Agency', 'buyer', 2500, 'DG'],
+    ['brand@example.com', 'TechBrand Inc', 'buyer', 1000, 'TB'],
+    ['publisher@example.com', 'Mike Owner', 'publisher', 0, 'MO'],
+    ['publisher2@example.com', 'Lisa Blogs', 'publisher', 0, 'LB'],
+  ];
+
+  let needsSites = false;
+  for (const [email, name, role, balance, avatar] of demoUsers) {
+    if (!userExists.get(email)) {
+      insertUser.run(email, hash, name, role, balance, avatar);
+      needsSites = true; // new users added, seed sites too
+    }
+  }
+
+  // Seed sites only if no sites exist yet
+  const siteCount = (db.prepare('SELECT COUNT(*) as c FROM sites').get() as any).c;
+  if (siteCount > 0) return;
+  if (!needsSites) return;
 
   const insertSite = db.prepare(`
     INSERT INTO sites (domain, url, language, country, categories, moz_da, ahrefs_dr, organic_traffic, 
