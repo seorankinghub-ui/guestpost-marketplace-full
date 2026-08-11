@@ -135,11 +135,11 @@ const styles = {
 };
 
 const navItems = [
-  { href: '/dashboard', label: 'Dashboard', icon: '📊' },
-  { href: '/sites', label: 'My Sites', icon: '🌐' },
-  { href: '/orders', label: 'Orders', icon: '📋' },
-  { href: '/earnings', label: 'Earnings', icon: '💰' },
-  { href: '/settings', label: 'Settings', icon: '⚙️' },
+  { href: '/publisher/dashboard', label: 'Dashboard', icon: '📊' },
+  { href: '/publisher/sites', label: 'My Sites', icon: '🌐' },
+  { href: '/publisher/orders', label: 'Orders', icon: '📋' },
+  { href: '/publisher/earnings', label: 'Earnings', icon: '💰' },
+  { href: '/publisher/settings', label: 'Settings', icon: '⚙️' },
 ];
 
 export default async function PublisherLayout({ children }: { children: React.ReactNode }) {

@@ -12,11 +12,11 @@ export default async function BuyerLayout({ children }: { children: React.ReactN
   const balance = user.balance_main || 0;
 
   const sidebarLinks = [
-    { href: '/dashboard', label: '📊 Dashboard' },
-    { href: '/catalog', label: '🔍 Browse Sites' },
-    { href: '/orders', label: '📋 My Orders' },
-    { href: '/wallet', label: '💰 Wallet' },
-    { href: '/settings', label: '⚙️ Settings' },
+    { href: '/buyer/dashboard', label: '📊 Dashboard' },
+    { href: '/buyer/catalog', label: '🔍 Browse Sites' },
+    { href: '/buyer/orders', label: '📋 My Orders' },
+    { href: '/buyer/wallet', label: '💰 Wallet' },
+    { href: '/buyer/settings', label: '⚙️ Settings' },
   ];
 
   return (
