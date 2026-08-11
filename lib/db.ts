@@ -2,7 +2,11 @@ import Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
 
-const DB_PATH = path.join(process.cwd(), 'data', 'marketplace.db');
+// Vercel serverless: only /tmp is writable
+const isProd = process.env.NODE_ENV === 'production' || !!process.env.VERCEL;
+const DB_PATH = isProd
+  ? '/tmp/marketplace.db'
+  : path.join(process.cwd(), 'data', 'marketplace.db');
 
 let db: Database.Database | null = null;
 let seeded = false;
@@ -146,6 +150,13 @@ function initSchema(db: Database.Database) {
       referred_id INTEGER NOT NULL REFERENCES users(id),
       commission_rate REAL DEFAULT 10,
       total_earned REAL DEFAULT 0,
+      created_at TEXT DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS sessions (
+      token TEXT PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id),
+      expires_at INTEGER NOT NULL,
       created_at TEXT DEFAULT (datetime('now'))
     );
   `);
