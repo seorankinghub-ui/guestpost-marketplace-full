@@ -1,8 +1,8 @@
 export const dynamic = 'force-dynamic';
 
-import Link from 'next/link';
+export const dynamic = 'force-dynamic';
 
-interface Props { searchParams: { [key: string]: string | undefined }; }
+import Link from 'next/link';
 
 const ALL_SITES = [
   { id:1, domain:'techinsider.com', moz_da:72, ahrefs_dr:68, traffic:'245K/mo', language:'English', category:'Technology', country:'USA', content_price:95, writing_price:115, status:'approved', rating:4.8, reviews:124 },
@@ -21,7 +21,7 @@ const ALL_SITES = [
 
 const categories = ['All','Technology','Health','Finance','Travel','Business','Lifestyle','Sports','Food','Marketing','Crypto','Environment'];
 
-export default async function CatalogPage({ searchParams }: Props) {
+export default async function CatalogPage({ searchParams }: { searchParams: { [key: string]: string | undefined } }) {
   const cat = searchParams.category || 'All';
   const sort = searchParams.sort || 'da_desc';
   const search = searchParams.search || '';
@@ -57,21 +57,22 @@ export default async function CatalogPage({ searchParams }: Props) {
         ))}
       </div>
 
-      {/* Sort + Search */}
-      <div style={{ display:'flex', gap:'.5rem', marginBottom:'1.5rem', flexWrap:'wrap', alignItems:'center' }}>
-        <select onChange={(e: any) => { if (typeof window !== 'undefined') window.location.href = `/buyer/catalog?category=${cat}&sort=${e.target.value}`; }}
-          defaultValue={sort}
-          style={{ padding:'.45rem .75rem', border:'1px solid #d1d5db', borderRadius:6, fontSize:'.85rem', background:'white' }}>
-          <option value="da_desc">Highest DA first</option>
-          <option value="da_asc">Lowest DA first</option>
-          <option value="price_asc">Price: Low to High</option>
-          <option value="price_desc">Price: High to Low</option>
-          <option value="traffic">Most Traffic</option>
-        </select>
-        <form style={{ flex:1, minWidth:200 }}>
-          <input name="search" defaultValue={search} placeholder="Search domains..."
-            style={{ width:'100%', padding:'.45rem .75rem', border:'1px solid #d1d5db', borderRadius:6, fontSize:'.85rem', boxSizing:'border-box' }} />
-        </form>
+      {/* Sort */}
+      <div style={{ display:'flex', gap:'.35rem', marginBottom:'1.5rem', flexWrap:'wrap', alignItems:'center' }}>
+        <span style={{ fontSize:'.8rem', color:'#64748b', fontWeight:500 }}>Sort:</span>
+        {[
+          {key:'da_desc', label:'Highest DA'},
+          {key:'da_asc', label:'Lowest DA'},
+          {key:'price_asc', label:'Price: Low-High'},
+          {key:'price_desc', label:'Price: High-Low'},
+          {key:'traffic', label:'Most Traffic'},
+        ].map(s => (
+          <Link key={s.key} href={`/buyer/catalog?category=${cat}&sort=${s.key}`} style={{
+            padding:'.35rem .65rem', borderRadius:6, fontSize:'.75rem', fontWeight:500, textDecoration:'none',
+            background: sort === s.key ? '#2563eb' : '#f1f5f9',
+            color: sort === s.key ? 'white' : '#475569', whiteSpace:'nowrap'
+          }}>{s.label}</Link>
+        ))}
       </div>
 
       {/* Site cards */}
