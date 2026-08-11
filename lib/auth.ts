@@ -30,7 +30,6 @@ const DEMO_PASSWORD = 'password123';
 
 /**
  * Encode user info into a self-contained session token.
- * This way it works across Vercel serverless containers (no shared /tmp).
  */
 function encodeToken(user: SessionUser): string {
   const payload = JSON.stringify({
@@ -46,10 +45,6 @@ function encodeToken(user: SessionUser): string {
   return Buffer.from(payload).toString('base64');
 }
 
-/**
- * Decode a self-contained session token back to a user.
- * Returns null if expired or malformed.
- */
 function decodeToken(token: string): SessionUser | null {
   try {
     const decoded = decodeURIComponent(token);
@@ -79,17 +74,14 @@ export function getSession(token: string): SessionUser | null {
 }
 
 export function destroySession(_token: string): void {
-  // No-op — sessions are self-contained in the token (stateless)
 }
 
 export function authenticateUser(email: string, password: string): SessionUser | null {
-  // 1. Check hardcoded demo users first (always works)
   const demoUser = DEMO_USERS[email];
   if (demoUser && password === DEMO_PASSWORD) {
     return { ...demoUser };
   }
 
-  // 2. Try DB lookup for non-demo users
   try {
     const db = getDb();
     const bcrypt = require('bcryptjs');
@@ -111,7 +103,6 @@ export function authenticateUser(email: string, password: string): SessionUser |
       }
     }
   } catch {
-    // DB might not be available — fall through to null
   }
 
   return null;
