@@ -2,7 +2,6 @@ export const dynamic = 'force-dynamic';
 
 import Link from 'next/link';
 import { cookies } from 'next/headers';
-import { getDb } from '@/lib/db';
 import { getSession } from '@/lib/auth';
 
 export default async function BuyerLayout({ children }: { children: React.ReactNode }) {
@@ -10,9 +9,7 @@ export default async function BuyerLayout({ children }: { children: React.ReactN
   const user = token ? getSession(token) : null;
   if (!user) return <div style={{ padding: '2rem', textAlign: 'center' }}>Please log in</div>;
 
-  const db = getDb();
-  const latestUser = db.prepare('SELECT balance_main FROM users WHERE id = ?').get(user.id) as any;
-  const balance = latestUser?.balance_main ?? user.balance_main;
+  const balance = user.balance_main || 0;
 
   const sidebarLinks = [
     { href: '/dashboard', label: '📊 Dashboard' },

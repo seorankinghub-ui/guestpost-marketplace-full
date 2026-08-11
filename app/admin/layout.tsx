@@ -1,7 +1,6 @@
 export const dynamic = 'force-dynamic';
 
 import { cookies } from 'next/headers';
-import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { getSession } from '@/lib/auth';
 
@@ -46,10 +45,18 @@ const navItems = [
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const token = cookies().get('session_token')?.value;
-  if (!token) redirect('/login');
+  const session = token ? getSession(token) : null;
 
-  const session = getSession(token);
-  if (!session || session.role !== 'admin') redirect('/login');
+  if (!session || session.role !== 'admin') {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', padding: '2rem', textAlign: 'center', background: '#f5f6fa' }}>
+        <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🔐</div>
+        <h1 style={{ fontSize: '1.5rem', marginBottom: '.5rem' }}>Admin Access Required</h1>
+        <p style={{ color: '#64748b', marginBottom: '1.5rem' }}>Please log in with an admin account.</p>
+        <a href="/login" style={{ background: '#2563eb', color: 'white', padding: '.75rem 2rem', borderRadius: 8, textDecoration: 'none', fontWeight: 600 }}>Go to Login</a>
+      </div>
+    );
+  }
 
   return (
     <div style={styles.container}>
