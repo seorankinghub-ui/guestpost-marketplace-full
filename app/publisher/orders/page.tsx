@@ -1,151 +1,62 @@
-// @ts-nocheck
-'use client';
+export const dynamic = 'force-dynamic';
 
-import { useState, useEffect } from 'react';
-import Link from 'next/link';
+import { cookies } from 'next/headers';
+import { getSession } from '@/lib/auth';
 
-const statusTabs = [
-  { key: 'acceptance', label: 'Pending Acceptance' },
-  { key: 'in_progress', label: 'In Progress' },
-  { key: 'approval', label: 'Pending Approval' },
-  { key: 'completed', label: 'Completed' },
-  { key: 'rejected', label: 'Rejected' },
+const DEMO_ORDERS = [
+  { id: 1, buyer: 'Sarah Johnson', site: 'techinsider.com', type: 'content_placement', price: 95, status: 'completed', created_at: '2026-08-01' },
+  { id: 2, buyer: 'Digital Growth Agency', site: 'healthwise.org', type: 'writing_placement', price: 92, status: 'in_progress', created_at: '2026-08-03' },
+  { id: 3, buyer: 'TechBrand Inc', site: 'financepulse.com', type: 'link_insertion', price: 80, status: 'acceptance', created_at: '2026-08-06' },
+  { id: 4, buyer: 'Sarah Johnson', site: 'bizgrowth.com', type: 'content_placement', price: 52, status: 'completed', created_at: '2026-08-08' },
 ];
 
 const statusColors: Record<string, string> = {
-  completed: '#38a169',
-  in_progress: '#3182ce',
-  task_review: '#d69e2e',
-  acceptance: '#dd6b20',
-  rejected: '#e53e3e',
-  draft: '#718096',
-  approval: '#805ad5',
-  improvement: '#d53f8c',
+  completed: '#38a169', in_progress: '#3182ce', task_review: '#d69e2e',
+  acceptance: '#dd6b20', rejected: '#e53e3e',
 };
 
-const S: any = {
-  pageTitle: { fontSize: 26, fontWeight: 700, color: '#1a202c', marginBottom: 20 },
-  tabs: { display: 'flex', gap: 4, marginBottom: 24, flexWrap: 'wrap' as const },
-  tab: (active: boolean): React.CSSProperties => ({
-    padding: '8px 16px',
-    fontSize: 13,
-    fontWeight: 600,
-    borderRadius: 6,
-    border: 'none',
-    cursor: 'pointer',
-    backgroundColor: active ? '#3182ce' : '#edf2f7',
-    color: active ? '#fff' : '#4a5568',
-  }),
-  card: { backgroundColor: '#fff', borderRadius: 10, padding: 20, border: '1px solid #e2e8f0', marginBottom: 12 },
-  cardRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap' as const, gap: 12 },
-  orderInfo: { flex: 1 },
-  orderId: { fontSize: 12, color: '#a0aec0', marginBottom: 2 },
-  buyerName: { fontSize: 15, fontWeight: 600, color: '#2d3748' },
-  orderMeta: { fontSize: 13, color: '#718096', marginTop: 2 },
-  price: { fontSize: 18, fontWeight: 700, color: '#38a169', marginRight: 16 },
-  actions: { display: 'flex', gap: 8 },
-  acceptBtn: { padding: '7px 16px', backgroundColor: '#38a169', color: '#fff', border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer' },
-  rejectBtn: { padding: '7px 16px', backgroundColor: '#e53e3e', color: '#fff', border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer' },
-  completeBtn: { padding: '7px 16px', backgroundColor: '#3182ce', color: '#fff', border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer' },
-  viewBtn: { padding: '7px 16px', backgroundColor: '#edf2f7', color: '#4a5568', border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer', textDecoration: 'none' },
-  badge: (color: string): React.CSSProperties => ({
-    display: 'inline-block', padding: '3px 10px', borderRadius: 12, fontSize: 11, fontWeight: 600,
-    backgroundColor: `${color}20`, color,
-  }),
-  empty: { textAlign: 'center' as const, padding: 60, color: '#a0aec0', fontSize: 15 },
-};
-
-interface Order {
-  id: number;
-  buyer_name: string;
-  site_domain: string;
-  product_type: string;
-  price: number;
-  status: string;
-  created_at: string;
-}
-
-export default function PublisherOrders() {
-  const [activeTab, setActiveTab] = useState('acceptance');
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => { fetchOrders(); }, [activeTab]);
-
-  async function fetchOrders() {
-    setLoading(true);
-    try {
-      const res = await fetch(`/api/orders?role=publisher&status=${activeTab}`);
-      if (res.ok) {
-        const data = await res.json();
-        setOrders(data.orders || []);
-      }
-    } catch { setOrders([]); }
-    finally { setLoading(false); }
-  }
-
-  async function handleAction(orderId: number, action: 'accept' | 'reject' | 'complete') {
-    try {
-      const res = await fetch(`/api/orders/${orderId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action }),
-      });
-      if (res.ok) fetchOrders();
-    } catch {}
+export default async function PublisherOrdersPage() {
+  const token = cookies().get('session_token')?.value;
+  const session = getSession(token || '');
+  if (!session || session.role !== 'publisher') {
+    return <div style={{ padding: '4rem 2rem', textAlign: 'center', color: '#64748b' }}>🔐 Please log in as publisher.</div>;
   }
 
   return (
     <div>
-      <h1 style={S.pageTitle}>Orders</h1>
-      <div style={S.tabs}>
-        {statusTabs.map(tab => (
-          <button key={tab.key} style={S.tab(activeTab === tab.key)} onClick={() => setActiveTab(tab.key)}>
-            {tab.label}
-          </button>
-        ))}
-      </div>
-
-      {loading ? (
-        <div style={{ color: '#718096', padding: 20 }}>Loading...</div>
-      ) : orders.length === 0 ? (
-        <div style={S.empty}>
-          <div style={{ fontSize: 40, marginBottom: 12 }}>📋</div>
-          <p>No orders in this category.</p>
-        </div>
-      ) : (
-        orders.map(order => (
-          <div key={order.id} style={S.card}>
-            <div style={S.cardRow}>
-              <div style={S.orderInfo}>
-                <div style={S.orderId}>Order #{order.id}</div>
-                <div style={S.buyerName}>{order.buyer_name}</div>
-                <div style={S.orderMeta}>
-                  {order.site_domain} · {order.product_type.replace(/_/g, ' ')} · {new Date(order.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                </div>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <span style={S.badge(statusColors[order.status] || '#718096')}>
-                  {order.status.replace(/_/g, ' ')}
+      <h1 style={{ fontSize: '1.75rem', fontWeight: 700, marginBottom: '1.5rem' }}>Orders</h1>
+      <table style={{ width: '100%', borderCollapse: 'collapse', background: 'white', border: '1px solid #e2e8f0', borderRadius: 10, overflow: 'hidden' }}>
+        <thead>
+          <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+            <th style={{ padding: '.75rem 1rem', textAlign: 'left', fontSize: '.8rem', color: '#64748b', fontWeight: 600 }}>#</th>
+            <th style={{ padding: '.75rem 1rem', textAlign: 'left', fontSize: '.8rem', color: '#64748b', fontWeight: 600 }}>Buyer</th>
+            <th style={{ padding: '.75rem 1rem', textAlign: 'left', fontSize: '.8rem', color: '#64748b', fontWeight: 600 }}>Site</th>
+            <th style={{ padding: '.75rem 1rem', textAlign: 'left', fontSize: '.8rem', color: '#64748b', fontWeight: 600 }}>Type</th>
+            <th style={{ padding: '.75rem 1rem', textAlign: 'left', fontSize: '.8rem', color: '#64748b', fontWeight: 600 }}>Price</th>
+            <th style={{ padding: '.75rem 1rem', textAlign: 'left', fontSize: '.8rem', color: '#64748b', fontWeight: 600 }}>Status</th>
+            <th style={{ padding: '.75rem 1rem', textAlign: 'left', fontSize: '.8rem', color: '#64748b', fontWeight: 600 }}>Date</th>
+          </tr>
+        </thead>
+        <tbody>
+          {DEMO_ORDERS.map(o => (
+            <tr key={o.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+              <td style={{ padding: '.75rem 1rem', fontSize: '.85rem', color: '#94a3b8' }}>#{o.id}</td>
+              <td style={{ padding: '.75rem 1rem', fontSize: '.9rem', fontWeight: 500 }}>{o.buyer}</td>
+              <td style={{ padding: '.75rem 1rem', fontSize: '.9rem', color: '#2563eb' }}>{o.site}</td>
+              <td style={{ padding: '.75rem 1rem', fontSize: '.85rem', color: '#64748b', textTransform: 'capitalize' }}>{o.type.replace(/_/g, ' ')}</td>
+              <td style={{ padding: '.75rem 1rem', fontWeight: 600 }}>${o.price}</td>
+              <td style={{ padding: '.75rem 1rem' }}>
+                <span style={{ display: 'inline-block', padding: '.2rem .6rem', borderRadius: 12, background: `${statusColors[o.status]}20`, color: statusColors[o.status], fontSize: '.75rem', fontWeight: 600, textTransform: 'capitalize' }}>
+                  {o.status.replace(/_/g, ' ')}
                 </span>
-                <span style={S.price}>${Number(order.price).toFixed(2)}</span>
-                <div style={S.actions}>
-                  {order.status === 'acceptance' && (
-                    <>
-                      <button style={S.acceptBtn} onClick={() => handleAction(order.id, 'accept')}>Accept</button>
-                      <button style={S.rejectBtn} onClick={() => handleAction(order.id, 'reject')}>Reject</button>
-                    </>
-                  )}
-                  {order.status === 'in_progress' && (
-                    <button style={S.completeBtn} onClick={() => handleAction(order.id, 'complete')}>Mark Complete</button>
-                  )}
-                  <Link href={`/orders/${order.id}`} style={S.viewBtn}>View</Link>
-                </div>
-              </div>
-            </div>
-          </div>
-        ))
-      )}
+              </td>
+              <td style={{ padding: '.75rem 1rem', fontSize: '.85rem', color: '#64748b' }}>
+                {new Date(o.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }

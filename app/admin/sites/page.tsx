@@ -1,158 +1,68 @@
-// @ts-nocheck
-'use client';
+export const dynamic = 'force-dynamic';
 
-import { useState, useEffect } from 'react';
+import { cookies } from 'next/headers';
+import { getSession } from '@/lib/auth';
 
-const tabs = [
-  { key: 'pending', label: 'Pending' },
-  { key: 'approved', label: 'Approved' },
-  { key: 'rejected', label: 'Rejected' },
-  { key: 'all', label: 'All' },
+const DEMO_SITES = [
+  { id: 1, domain: 'techinsider.com', owner: 'Mike Owner', moz_da: 72, ahrefs_dr: 68, traffic: '245K/mo', language: 'English', status: 'approved', created_at: '2026-07-05' },
+  { id: 2, domain: 'healthwise.org', owner: 'Mike Owner', moz_da: 65, ahrefs_dr: 60, traffic: '180K/mo', language: 'English', status: 'approved', created_at: '2026-07-06' },
+  { id: 3, domain: 'financepulse.com', owner: 'Mike Owner', moz_da: 58, ahrefs_dr: 54, traffic: '320K/mo', language: 'English', status: 'pending', created_at: '2026-07-08' },
+  { id: 4, domain: 'travelvista.com', owner: 'Lisa Blogs', moz_da: 55, ahrefs_dr: 50, traffic: '95K/mo', language: 'English', status: 'approved', created_at: '2026-07-10' },
+  { id: 5, domain: 'bizgrowth.com', owner: 'Lisa Blogs', moz_da: 48, ahrefs_dr: 44, traffic: '62K/mo', language: 'English', status: 'pending', created_at: '2026-07-12' },
+  { id: 6, domain: 'lifestylehub.com', owner: 'Mike Owner', moz_da: 42, ahrefs_dr: 38, traffic: '41K/mo', language: 'English', status: 'approved', created_at: '2026-07-14' },
 ];
 
-const statusColors: Record<string, string> = {
-  approved: '#38a169',
-  pending: '#d69e2e',
-  rejected: '#e53e3e',
-  suspended: '#718096',
-};
+const statusColors: Record<string, string> = { approved: '#38a169', pending: '#d69e2e', rejected: '#e53e3e' };
 
-const S: any = {
-  pageTitle: { fontSize: 26, fontWeight: 700, color: '#1a202c', marginBottom: 20 },
-  tabs: { display: 'flex', gap: 4, marginBottom: 24, flexWrap: 'wrap' as const },
-  tab: (active: boolean): React.CSSProperties => ({
-    padding: '8px 18px', fontSize: 13, fontWeight: 600, borderRadius: 6,
-    border: 'none', cursor: 'pointer',
-    backgroundColor: active ? '#3182ce' : '#edf2f7',
-    color: active ? '#fff' : '#4a5568',
-  }),
-  grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: 16 },
-  card: { backgroundColor: '#fff', borderRadius: 10, padding: 20, border: '1px solid #e2e8f0' },
-  cardHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 },
-  domain: { fontSize: 16, fontWeight: 600, color: '#2b6cb0' },
-  badge: (color: string): React.CSSProperties => ({
-    display: 'inline-block', padding: '4px 12px', borderRadius: 12, fontSize: 11, fontWeight: 600,
-    backgroundColor: `${color}20`, color,
-  }),
-  meta: { fontSize: 12, color: '#a0aec0', marginTop: 2 },
-  metrics: { display: 'flex', gap: 16, marginBottom: 10, flexWrap: 'wrap' as const },
-  metric: { fontSize: 12, color: '#718096' },
-  metricVal: { fontWeight: 600, color: '#2d3748' },
-  prices: { display: 'flex', gap: 14, marginBottom: 12, fontSize: 13, color: '#4a5568' },
-  categories: { display: 'flex', gap: 4, flexWrap: 'wrap' as const, marginBottom: 12 },
-  catChip: { padding: '3px 8px', backgroundColor: '#edf2f7', borderRadius: 4, fontSize: 11, color: '#4a5568', fontWeight: 500 },
-  actions: { display: 'flex', gap: 8, marginTop: 12, paddingTop: 12, borderTop: '1px solid #edf2f7' },
-  approveBtn: { padding: '7px 18px', backgroundColor: '#38a169', color: '#fff', border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer' },
-  rejectBtn: { padding: '7px 18px', backgroundColor: '#e53e3e', color: '#fff', border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer' },
-  empty: { textAlign: 'center' as const, padding: 60, color: '#a0aec0', fontSize: 15 },
-};
-
-interface Site {
-  id: number;
-  domain: string;
-  categories: string;
-  language: string;
-  country: string;
-  moz_da: number;
-  ahrefs_dr: number;
-  organic_traffic: number;
-  content_placement_price: number;
-  writing_placement_price: number;
-  status: string;
-  created_at: string;
-  owner_name?: string;
-}
-
-export default function AdminSites() {
-  const [activeTab, setActiveTab] = useState('pending');
-  const [sites, setSites] = useState<Site[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => { fetchSites(); }, [activeTab]);
-
-  async function fetchSites() {
-    setLoading(true);
-    try {
-      const statusFilter = activeTab === 'all' ? '' : `&status=${activeTab}`;
-      const res = await fetch(`/api/admin/sites?${statusFilter}`);
-      if (res.ok) {
-        const data = await res.json();
-        setSites(data.sites || []);
-      }
-    } catch {} finally { setLoading(false); }
-  }
-
-  async function moderate(siteId: number, action: 'approve' | 'reject') {
-    try {
-      await fetch(`/api/admin/sites/${siteId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action }),
-      });
-      fetchSites();
-    } catch {}
+export default async function AdminSitesPage() {
+  const token = cookies().get('session_token')?.value;
+  const session = getSession(token || '');
+  if (!session || session.role !== 'admin') {
+    return <div style={{ padding: '4rem 2rem', textAlign: 'center', color: '#64748b' }}>🔐 Please log in as admin.</div>;
   }
 
   return (
     <div>
-      <h1 style={S.pageTitle}>Site Moderation</h1>
-
-      <div style={S.tabs}>
-        {tabs.map(tab => (
-          <button key={tab.key} style={S.tab(activeTab === tab.key)} onClick={() => setActiveTab(tab.key)}>
-            {tab.label}
-          </button>
-        ))}
+      <h1 style={{ fontSize: '1.75rem', fontWeight: 700, marginBottom: '1.5rem' }}>Sites</h1>
+      <div style={{ display: 'flex', gap: '.75rem', marginBottom: '1.25rem' }}>
+        <span style={{ padding: '.4rem .75rem', borderRadius: 6, fontSize: '.8rem', fontWeight: 600, background: '#f1f5f9', color: '#475569' }}>
+          All ({DEMO_SITES.length})
+        </span>
+        <span style={{ padding: '.4rem .75rem', borderRadius: 6, fontSize: '.8rem', fontWeight: 600, background: '#dcfce7', color: '#166534' }}>
+          Approved ({DEMO_SITES.filter(s => s.status === 'approved').length})
+        </span>
+        <span style={{ padding: '.4rem .75rem', borderRadius: 6, fontSize: '.8rem', fontWeight: 600, background: '#fef9c3', color: '#854d0e' }}>
+          Pending ({DEMO_SITES.filter(s => s.status === 'pending').length})
+        </span>
       </div>
-
-      {loading ? (
-        <div style={{ color: '#718096', padding: 20 }}>Loading...</div>
-      ) : sites.length === 0 ? (
-        <div style={S.empty}>
-          <div style={{ fontSize: 40, marginBottom: 12 }}>🌐</div>
-          <p>No sites in this category.</p>
-        </div>
-      ) : (
-        <div style={S.grid}>
-          {sites.map((site: Site) => {
-            const cats = (() => { try { return JSON.parse(site.categories || '[]'); } catch { return []; } })();
-            return (
-              <div key={site.id} style={S.card}>
-                <div style={S.cardHeader}>
-                  <div>
-                    <div style={S.domain}>{site.domain}</div>
-                    <div style={S.meta}>Submitted {new Date(site.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</div>
-                  </div>
-                  <span style={S.badge(statusColors[site.status] || '#718096')}>{site.status}</span>
-                </div>
-
-                <div style={S.metrics}>
-                  <div style={S.metric}>DA <span style={S.metricVal}>{site.moz_da}</span></div>
-                  <div style={S.metric}>DR <span style={S.metricVal}>{site.ahrefs_dr}</span></div>
-                  <div style={S.metric}>Traffic <span style={S.metricVal}>{(site.organic_traffic || 0).toLocaleString()}</span></div>
-                  <div style={S.metric}>Lang <span style={S.metricVal}>{site.language}</span></div>
-                </div>
-
-                <div style={S.categories}>
-                  {cats.map((cat: string) => <span key={cat} style={S.catChip}>{cat}</span>)}
-                </div>
-
-                <div style={S.prices}>
-                  <span>Content: <strong>${Number(site.content_placement_price).toFixed(2)}</strong></span>
-                  <span>Writing: <strong>${Number(site.writing_placement_price).toFixed(2)}</strong></span>
-                </div>
-
-                {site.status === 'pending' && (
-                  <div style={S.actions}>
-                    <button style={S.approveBtn} onClick={() => moderate(site.id, 'approve')}>✓ Approve</button>
-                    <button style={S.rejectBtn} onClick={() => moderate(site.id, 'reject')}>✗ Reject</button>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      )}
+      <table style={{ width: '100%', borderCollapse: 'collapse', background: 'white', border: '1px solid #e2e8f0', borderRadius: 10, overflow: 'hidden' }}>
+        <thead>
+          <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+            <th style={{ padding: '.75rem 1rem', textAlign: 'left', fontSize: '.8rem', color: '#64748b', fontWeight: 600 }}>Domain</th>
+            <th style={{ padding: '.75rem 1rem', textAlign: 'left', fontSize: '.8rem', color: '#64748b', fontWeight: 600 }}>Owner</th>
+            <th style={{ padding: '.75rem 1rem', textAlign: 'left', fontSize: '.8rem', color: '#64748b', fontWeight: 600 }}>DA/DR</th>
+            <th style={{ padding: '.75rem 1rem', textAlign: 'left', fontSize: '.8rem', color: '#64748b', fontWeight: 600 }}>Traffic</th>
+            <th style={{ padding: '.75rem 1rem', textAlign: 'left', fontSize: '.8rem', color: '#64748b', fontWeight: 600 }}>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {DEMO_SITES.map(s => (
+            <tr key={s.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+              <td style={{ padding: '.75rem 1rem', fontSize: '.9rem', fontWeight: 600, color: '#2563eb' }}>{s.domain}</td>
+              <td style={{ padding: '.75rem 1rem', fontSize: '.85rem' }}>{s.owner}</td>
+              <td style={{ padding: '.75rem 1rem', fontSize: '.85rem', fontWeight: 600 }}>
+                DA {s.moz_da} / DR {s.ahrefs_dr}
+              </td>
+              <td style={{ padding: '.75rem 1rem', fontSize: '.85rem', color: '#64748b' }}>{s.traffic}</td>
+              <td style={{ padding: '.75rem 1rem' }}>
+                <span style={{ display: 'inline-block', padding: '.2rem .6rem', borderRadius: 12, background: `${statusColors[s.status]}20`, color: statusColors[s.status], fontSize: '.75rem', fontWeight: 600, textTransform: 'capitalize' }}>
+                  {s.status}
+                </span>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
